@@ -1,0 +1,15 @@
+config:
+  path: ~/.config/kms.ini
+
+database:
+  path: ~/.local/share/kms/{}.kdbx
+  key: ~/.local/share/kms/{}.key
+
+keyfile:
+  contents: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <KeyFile>
+    <Meta><Version>1.00</Version></Meta>
+    <Key><Data>{}</Data></Key>
+    </KeyFile>
+    
