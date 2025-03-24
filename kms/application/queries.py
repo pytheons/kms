@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from abc import ABC
 from dataclasses import FrozenInstanceError
 from typing import Any
@@ -17,6 +18,7 @@ class FrozenQuery(AbstractQuery):
 
         super().__setattr__(key, value)
 
+
 class OptionQuery(FrozenQuery):
     option: str
 
@@ -24,13 +26,14 @@ class OptionQuery(FrozenQuery):
         super().__init__(question, default)
         self.option = option
 
+
 class BooleanQuery(FrozenQuery): ...
+
 
 class ValueQuery(FrozenQuery): ...
 
 
-class PasswordQuery(FrozenQuery):
-    confirm: PasswordQuery
+class ChoseCredentialsQuery(FrozenQuery): ...
 
-    def __init__(self, question: str, default: Any = None, confirm: PasswordQuery = None):
-        super().__init__(question, default)
+
+class PasswordQuery(FrozenQuery): ...
