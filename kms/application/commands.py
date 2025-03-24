@@ -1,15 +1,21 @@
-import os
 from functools import singledispatchmethod
-from os.path import dirname
-from typing import Any
+from typing import (
+    Any,
+)
 
 from cleo.commands.command import Command
 from cleo.helpers import option
-from pykeepass import PyKeePass
 
 from kms.application.configuration import KMSConfiguration
-from kms.application.queries import (AbstractQuery, BooleanQuery, OptionQuery,
-                                     ValueQuery)
+from kms.application.queries import (
+    AbstractQuery,
+    BooleanQuery,
+    ChoseCredentialsQuery,
+    OptionQuery,
+    PasswordQuery,
+    ValueQuery,
+)
+from kms.infrastructure.adapters import KeePassXC
 
 
 class KmsCommand(Command):
@@ -46,6 +52,32 @@ class KmsCommand(Command):
         self.io.write(query.question)
 
         return self.escape(self.io.read_line(default=query.default)) or query.default
+
+    @prompt.register
+    def __prompt_for_credentials(self, query: ChoseCredentialsQuery) -> bool | Any:
+        password = None
+        keyfile = None
+
+        match self.prompt(BooleanQuery(question=query.question, default=query.default)):
+            case True:
+                password = self.prompt(PasswordQuery(question="Password:", default=None))
+            case False:
+                keyfile = self.prompt(
+                    OptionQuery(
+                        "keyfile",
+                        question="Desired keyfile path: ",
+                        default=str(self.configuration["keyfile"]["path"]).format("kms"),
+                    )
+                )
+
+        return password, keyfile
+
+    @prompt.register
+    def __prompt_for_password(self, query: PasswordQuery) -> bool | Any:
+        password = self.secret(question=query.question, default=query.default)
+        confirm = self.secret(question=f"Confirm {query.question.lower()}", default=query.default)
+        if password != confirm:
+            self.line_error("ERROR: Passwords do not match", style="error")
 
 
 class Init(KmsCommand):
@@ -88,34 +120,26 @@ class Init(KmsCommand):
             )
         )
 
-        is_password = self.prompt(BooleanQuery(question="Password protect database? [y/N]: ", default=False))
-        password = None
-        keyfile = None
-        match is_password:
-            case True:
-                password = self.prompt(ValueQuery(question="Password: ", default=None))
-            case False:
-                keyfile = self.prompt(
-                    OptionQuery(
-                        "keyfile",
-                        question="Desired keyfile path: ",
-                        default=str(self.configuration["keyfile"]["path"]).format("kms"),
-                    )
-                )
+        password, keyfile = self.prompt(
+            ChoseCredentialsQuery(
+                question="Password protect database? [y/N]: ",
+                default=False,
+            ),
+        )
+        if any([password, keyfile]):
+            self.create(dict(database=database_path, password=password, keyfile=keyfile))
+            return
 
-        self.create(dict(database=database_path, password=password, keyfile=keyfile))
+        self.line_error("[ ! ] No database created. Exit.", style="error")
 
     @staticmethod
     def create(database_parameters: dict[str, str | int | bool]) -> None:
-        filename = database_parameters["database"]
-        os.makedirs(dirname(filename), exist_ok=True)
-
-        kp = PyKeePass(
-            filename=filename,
+        kee_pass_xc = KeePassXC(
+            filename=database_parameters["database"],
             password=database_parameters["password"],
             keyfile=database_parameters["keyfile"],
         )
-        kp.save()
+        kee_pass_xc.save()
 
 
 class Add(KmsCommand):
