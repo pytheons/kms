@@ -45,7 +45,7 @@ class KmsCommand(Command):
     def __prompt_for_boolean(self, query: BooleanQuery) -> bool | Any:
         response = self.escape(self.prompt(ValueQuery(question=query.question, default=query.default)))
 
-        return bool(response.lower() in ("y", "yes", "true", "t", "1"))
+        return bool(response and response.lower() in ("y", "yes", "true", "t", "1"))
 
     @prompt.register
     def __prompt_for_value(self, query: ValueQuery) -> bool | Any:
@@ -78,6 +78,8 @@ class KmsCommand(Command):
         confirm = self.secret(question=f"Confirm {query.question.lower()}", default=query.default)
         if password != confirm:
             self.line_error("ERROR: Passwords do not match", style="error")
+
+        return password
 
 
 class Init(KmsCommand):
@@ -130,16 +132,21 @@ class Init(KmsCommand):
             self.create(dict(database=database_path, password=password, keyfile=keyfile))
             return
 
-        self.line_error("[ ! ] No database created. Exit.", style="error")
+        self.line_error(
+            "[ ! ] Neither password or keyfile passed for database. No database created.",
+            style="error",
+        )
 
-    @staticmethod
-    def create(database_parameters: dict[str, str | int | bool]) -> None:
+    def create(self, database_parameters: dict[str, str | int | bool]) -> None:
         kee_pass_xc = KeePassXC(
             filename=database_parameters["database"],
             password=database_parameters["password"],
             keyfile=database_parameters["keyfile"],
         )
-        kee_pass_xc.save()
+        if kee_pass_xc.keyfile:
+            kee_pass_xc.create_keyfile(content=self.configuration["keyfile"]["content"])
+
+        kee_pass_xc.create()
 
 
 class Add(KmsCommand):
