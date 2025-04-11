@@ -4,10 +4,11 @@ from cleo.application import Application as Cli
 from cleo.commands.command import Command
 
 from kms.application.commands import (
+    Add,
     Init,
     KmsCommand,
 )
-from kms.application.configuration import KMSConfiguration
+from kms.application.configuration import Configuration
 from kms.interface.version import __version__
 
 
@@ -16,7 +17,7 @@ class KeyManagementService(Cli):
 
     def __init__(self):
         super().__init__(self.name, __version__)
-        self.configuration = KMSConfiguration(self.name)
+        self.configuration = Configuration(self.name)
 
     @property
     def default_commands(self) -> list[Command]:
@@ -24,4 +25,4 @@ class KeyManagementService(Cli):
 
     @property
     def kms_commands(self) -> list[Type[KmsCommand]]:
-        return [Init]
+        return [Init, Add]
