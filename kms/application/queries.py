@@ -6,9 +6,10 @@ from typing import Any
 
 
 class AbstractQuery(ABC):
-    def __init__(self, question: str, default: Any = None):
+    def __init__(self, question: str, default: Any = None, init: bool = False):
         self.question = question
         self.default = default
+        self.init = init
 
 
 class FrozenQuery(AbstractQuery):
@@ -22,8 +23,8 @@ class FrozenQuery(AbstractQuery):
 class OptionQuery(FrozenQuery):
     option: str
 
-    def __init__(self, option: str, question: str, default: Any = None):
-        super().__init__(question, default)
+    def __init__(self, option: str, question: str, default: Any = None, init: bool = False):
+        super().__init__(question, default, init)
         self.option = option
 
 
@@ -37,3 +38,8 @@ class ChoseCredentialsQuery(FrozenQuery): ...
 
 
 class PasswordQuery(FrozenQuery): ...
+
+
+class SecretQuery(FrozenQuery): ...
+
+class DatabaseQuery(OptionQuery): ...
