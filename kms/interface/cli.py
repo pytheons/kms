@@ -7,6 +7,7 @@ from kms.application.commands import (
     Add,
     Init,
     KmsCommand,
+    Show,
 )
 from kms.application.configuration import Configuration
 from kms.interface.version import __version__
@@ -25,4 +26,4 @@ class KeyManagementService(Cli):
 
     @property
     def kms_commands(self) -> list[Type[KmsCommand]]:
-        return [Init, Add]
+        return [Init, Add, Show]
