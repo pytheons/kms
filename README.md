@@ -1,2 +1,2 @@
 # kms
-kms is a commandline password manager for KeePass inspired by passhole
+kms is a commandline local key management store for storing secrets in secure way
