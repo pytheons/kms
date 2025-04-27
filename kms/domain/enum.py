@@ -11,3 +11,7 @@ class AutoNamed(Enum):
 class PromptKind(Enum):
     SECRET = auto()
     PASSWORD = auto()
+
+    @classmethod
+    def secured(cls):
+        return [cls.SECRET, cls.PASSWORD]
