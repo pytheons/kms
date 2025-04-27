@@ -1,4 +1,4 @@
-from functools import singledispatchmethod
+import os
 
 from cleo.helpers import (
     argument,
@@ -6,8 +6,8 @@ from cleo.helpers import (
 )
 
 from kms.application.abstract import KmsCommand
-from kms.application.validators import CredentialsValidator
 from kms.domain.enum import PromptKind
+from kms.domain.exceptions import DatabaseExistsException
 from kms.domain.model import (
     BaseCredentials,
     Credentials,
@@ -15,7 +15,7 @@ from kms.domain.model import (
     ProcessCredentials,
     Prompt,
 )
-from kms.infrastructure.adapters import SecureStore
+from kms.infrastructure.database import SecureStore
 
 
 class Init(KmsCommand):
@@ -33,7 +33,7 @@ class Init(KmsCommand):
             name="confirm",
             kind=PromptKind.PASSWORD,
             question="Confirm Password",
-        )
+        ),
     ]
 
     def __call__(self, credentials: Credentials, *args, **kwargs) -> None:
@@ -49,30 +49,24 @@ class Init(KmsCommand):
 
         credentials.set(name=name, database=database, keyfile=keyfile)
         self.create(credentials)
-        #     return
-        #
-        # self.line_error(
-        #     "[ ! ] Neither password or keyfile passed for database. No database created.",
-        #     style="error",
-        # )
 
     def create(self, credentials: BaseCredentials | ProcessCredentials | InitialCredentials) -> None:
+        secure_store = SecureStore(credentials=credentials, config=self.configuration)
 
-        self.info("Creating database...")
-        secure_store = SecureStore(
-            filename=credentials.database,
-            password=credentials.password,
-            keyfile=credentials.keyfile,
-        )
-        self.info("Creating key...")
-        secure_store.create_keyfile(content=self.configuration.content())
+        self.write("<info>[ 1 ] Creating configuration...")
+        self.configuration.dump()
+        self.line(" [ <comment>DONE</> ]</>")
 
-        # secure_store.create()
-        # self.configuration.dump()
+        self.write("<info>[ 2 ] Generating keys...")
+        if os.path.exists(credentials.keyfile):
+            raise DatabaseExistsException("Database already exists. Cannot proceed.")
+        secure_store.create_keyfile(content=self.configuration.content)
+        self.line(" [ <comment>DONE</> ]</>")
 
-        self.line("Database created. [ <comment>DONE</> ]")
-
-
+        self.write("<info>[ 3 ] Creating database...")
+        secure_store.create()
+        self.line(" [ <comment>DONE</> ]</>\n")
+        self.line("Database initialized successfully.")
 
 
 class Add(KmsCommand):

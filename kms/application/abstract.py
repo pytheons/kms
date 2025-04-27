@@ -1,7 +1,8 @@
 import os.path
+import re
 from abc import abstractmethod
-from os.path import expanduser
 
+from addict import Dict
 from cleo.commands.command import Command
 from cleo.helpers import (
     option,
@@ -14,7 +15,9 @@ from kms.domain.enum import PromptKind
 from kms.domain.exceptions import UnauthorizedException
 from kms.domain.model import (
     BaseCredentials,
+    CharactersRule,
     Credentials,
+    MinLengthRule,
     ProcessCredentials,
     Prompt,
 )
@@ -38,8 +41,11 @@ class BaseCommand(Command):
         self.write(text, "question")
 
     def prompt(self, name: str):
-        prompt = self._prompts.get(name)
-        return self.ask(f"{prompt.question}:", default=prompt.default) or prompt.default
+        prompt: Prompt = self._prompts.get(name)
+        question = f"{prompt.question}:"
+        if prompt.kind in PromptKind.secured():
+            return self.secret(question=question, default=prompt.default) or prompt.default
+        return self.ask(question=question, default=prompt.default) or prompt.default
 
 
 class KmsCommand(BaseCommand):
@@ -79,6 +85,13 @@ class KmsCommand(BaseCommand):
         self.configuration = configuration
         self.credentials_validator = CredentialsValidator()
 
+        config_password_rules = self.configuration.rules.password
+        self.__password_rules = [
+            MinLengthRule(config_password_rules.min_length),
+            CharactersRule(config_password_rules.characters),
+        ]
+
+
     def handle(self):
         credentials = self.prompt_credentials()
         if not credentials:
@@ -111,7 +124,7 @@ class KmsCommand(BaseCommand):
             return ProcessCredentials(user=os_user, name=process.name(), key=self.keyfile)
 
         user = self.validate_user(os_user)
-        password = self.prompt("password")
+        password = self.validate_password()
 
         if not password:
             raise UnauthorizedException("Password is required. Cannot proceed.")
@@ -128,3 +141,10 @@ class KmsCommand(BaseCommand):
             raise UnauthorizedException("Unauthorized user. User must be the same as os user.")
 
         return user
+
+    def validate_password(self):
+        password = self.prompt("password")
+        # for rule in self.__password_rules:
+        #     rule.satisfy(password)
+
+        return password

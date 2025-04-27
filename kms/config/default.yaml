@@ -2,7 +2,7 @@ config:
   path: ~/.config/kms/config.yaml
 
 database:
-  path: ~/.local/share/kms/{}.kdbx
+  path: ~/.local/share/kms/{}.db
 
 keyfile:
   path: ~/.local/share/kms/{}.key
@@ -12,3 +12,22 @@ keyfile:
     <Meta><Version>1.00</Version></Meta>
     <Key><Data>{}</Data></Key>
     </KeyFile>
+
+encryption:
+  path: ~/.local/.snc/.{}
+
+rules:
+  password:
+    min_length: 64
+    characters:
+      - "A-Z"
+      - "a-z"
+      - "0-9"
+      - "#$%&@^`~"
+      - '.,:;'
+      - "\"'"
+      - "\/|_-"
+      - "<>*+!?="
+      - "{[()]}"
+
+
